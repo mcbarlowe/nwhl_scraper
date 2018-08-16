@@ -150,8 +150,8 @@ def main():
     pipe delimited files
     '''
 
-    #game_id = input("Please input game id you want scraped: ") 
-    game_id = 18507472
+    game_id = input("Please input game id you want scraped: ") 
+    #game_id = 18507472
     pbp_dict = get_pbp_dict(game_id)
     pbp_df, player_df, team_df = convert_pbp_dict(pbp_dict)
 
