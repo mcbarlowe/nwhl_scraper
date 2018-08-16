@@ -142,7 +142,7 @@ def pull_player_names(pbp_df, player_df, id_column):
     #create a full name column from combination of first and last names
     #rewrite this as a function to join names together with a period
     #to help get rid of whitespace
-    player_df['full_name'] = player_df['first_name'] + ' ' + player_df['last_name']
+    player_df['full_name'] = player_df['first_name'].str.strip() + ' ' + player_df['last_name'].str.strip()
     
     #pull in the name of the players for the id_column passed to the function
     pbp_df = pbp_df.merge(player_df[['id', 'full_name']], how='left', left_on=id_column, right_on='id')
