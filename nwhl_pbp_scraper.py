@@ -121,7 +121,7 @@ def convert_pbp_dict(pbp_dict):
     pbp_df['away_goalie'] = pd.to_numeric(pbp_df['away_goalie'], errors='coerce')
     pbp_df['home_goalie'] = pd.to_numeric(pbp_df['home_goalie'], errors='coerce')
 
-    pbp_df = pbp_df.sort_values(by = ['period', 'seconds_elapsed'])
+    pbp_df = pbp_df.sort_values(by = ['period', 'seconds_elapsed', 'event_index'])
 
     return pbp_df, player_df, team_df
 
@@ -139,12 +139,15 @@ def pull_player_names(pbp_df, player_df, id_column):
              passed to it
     '''
 
-    #merge to the two dataframes to create a name dataframe which will be joined
-    #back to the pbp_df 
+    #create a full name column from combination of first and last names
+    #rewrite this as a function to join names together with a period
+    #to help get rid of whitespace
     player_df['full_name'] = player_df['first_name'] + ' ' + player_df['last_name']
     
+    #pull in the name of the players for the id_column passed to the function
     pbp_df = pbp_df.merge(player_df[['id', 'full_name']], how='left', left_on=id_column, right_on='id')
 
+    #rename column to future function calls won't overwrite newly created column
     pbp_df = pbp_df.rename(columns = {'full_name': f'{id_column}_name'})
 
     return pbp_df
@@ -165,15 +168,19 @@ def main():
     for column in player_id_columns:
         pbp_df = pull_player_names(pbp_df, player_df, column)
         
+    #removing extraneous columns and reogranizing the columns to make a little more sense
+    #to the user.
     pbp_df = pbp_df[['event_index', 'time', 'seconds_elapsed', 'game_id', 'event',
                      'event_description', 'period', 'event_p1', 'event_p1_name', 
                      'event_p2', 'event_p2_name', 'event_p3', 'event_p3_name', 'event_team',
                      'x_coord', 'y_coord', 'away_goalie', 'away_goalie_name', 'home_goalie',
                      'home_goalie_name', 'away_score', 'home_score', 'home_team_id', 'home_team',
                      'away_team_id', 'away_team']]
-    pd.DataFrame.to_csv(pbp_df, 'pbp_df.txt', sep='|')
-    pd.DataFrame.to_csv(player_df, 'player_df.txt', sep='|')
-    pd.DataFrame.to_csv(team_df, 'team_df.txt', sep='|')
+    
+    #writing all the dataframes to pipe delimited text files
+    pd.DataFrame.to_csv(pbp_df, f'{game_id}_pbp_df.txt', sep='|')
+    pd.DataFrame.to_csv(player_df, f'{game_id}_player_df.txt', sep='|')
+    pd.DataFrame.to_csv(team_df, f'{game_id}_team_df.txt', sep='|')
 
 if __name__ == '__main__':
     main()
