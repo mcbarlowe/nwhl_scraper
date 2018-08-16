@@ -59,6 +59,9 @@ def convert_pbp_dict(pbp_dict):
     for play in pbp_list:
         event_row = []
         event_row.append(play['play_index'])
+        #pulling in date and format to just YYYY-MM-DD
+        date = play['created_at'][:10]
+        event_row.append(date)
         event_row.append(play['clock_time_string'])
         if play['special_tags'] and play['special_tags'][0] == "ends_time_interval":
             event_row.append(1200)
@@ -97,7 +100,8 @@ def convert_pbp_dict(pbp_dict):
         parsed_plays_list.append(event_row)
 
     #create column names for my new pbp_df
-    cols = ['event_index', 'time', 'seconds_elapsed', 'game_id', 'event', 'event_description', 'period',
+    cols = ['event_index', 'date', 'time', 'seconds_elapsed', 'game_id', 
+            'event', 'event_description', 'period',
             'event_p1', 'event_p2', 'event_p3', 'event_team', 'x_coord', 'y_coord', 
             'away_goalie', 'home_goalie', 'away_score', 'home_score']
 
@@ -122,6 +126,8 @@ def convert_pbp_dict(pbp_dict):
     pbp_df['home_goalie'] = pd.to_numeric(pbp_df['home_goalie'], errors='coerce')
 
     pbp_df = pbp_df.sort_values(by = ['period', 'seconds_elapsed', 'event_index'])
+
+    print(pbp_df.head())
 
     return pbp_df, player_df, team_df
 
@@ -170,7 +176,7 @@ def main():
         
     #removing extraneous columns and reogranizing the columns to make a little more sense
     #to the user.
-    pbp_df = pbp_df[['event_index', 'time', 'seconds_elapsed', 'game_id', 'event',
+    pbp_df = pbp_df[['event_index', 'date', 'time', 'seconds_elapsed', 'game_id', 'event',
                      'event_description', 'period', 'event_p1', 'event_p1_name', 
                      'event_p2', 'event_p2_name', 'event_p3', 'event_p3_name', 'event_team',
                      'x_coord', 'y_coord', 'away_goalie', 'away_goalie_name', 'home_goalie',
@@ -178,9 +184,10 @@ def main():
                      'away_team_id', 'away_team']]
     
     #writing all the dataframes to pipe delimited text files
-    pd.DataFrame.to_csv(pbp_df, f'{game_id}_pbp_df.txt', sep='|')
-    pd.DataFrame.to_csv(player_df, f'{game_id}_player_df.txt', sep='|')
-    pd.DataFrame.to_csv(team_df, f'{game_id}_team_df.txt', sep='|')
+    pd.DataFrame.to_csv(pbp_df, f'{game_id}_pbp_df.txt', sep='|', index=False)
+    pd.DataFrame.to_csv(player_df, f'{game_id}_player_df.txt', sep='|', index=False)
+    pd.DataFrame.to_csv(team_df, f'{game_id}_team_df.txt', sep='|', index=False)
+    print("Dataframes written to Disk")
 
 if __name__ == '__main__':
     main()
