@@ -62,11 +62,16 @@ def convert_pbp_dict(pbp_dict):
         event_row.append(play['clock_time_string'])
         if play['special_tags'] and play['special_tags'][0] == "ends_time_interval":
             event_row.append(1200)
+        elif play['play_type'] == 'Shootout':
+            event_row.append(0)
         else:
-            time = play['clock_time_string'].split(':')
-            minutes = int(time[0]) * 60
-            seconds = int(time[1])
-            event_row.append(minutes+seconds)
+            try:
+                time = play['clock_time_string'].split(':')
+                minutes = int(time[0]) * 60
+                seconds = int(time[1])
+                event_row.append(minutes+seconds)
+            except AttributeError:
+                event_row.append(0)
         event_row.append(play['game_id'])
         if play['special_tags'] and play['special_tags'][0] == "ends_time_interval":
             event_row.append('Period End')
@@ -81,7 +86,7 @@ def convert_pbp_dict(pbp_dict):
         else:
             event_row.append(play['primary_player_id'])
             event_row.append(play['play_summary'].get('loser_id'))
-            event_row.append(play['play_summary'].get('assist_2_id'))
+            event_row.append(play['play_summary'].get('assist_2_id', 0))
         event_row.append(play['team_id'])
         event_row.append(play['play_summary'].get('x_coord'))
         event_row.append(play['play_summary'].get('y_coord'))
@@ -111,10 +116,10 @@ def convert_pbp_dict(pbp_dict):
 
 #cast these keys as float's so I can join with the player_df to pull player names
     pbp_df['event_p1'] = pd.to_numeric(pbp_df['event_p1'], errors='coerce')
-    pbp_df['event_p2'] = pbp_df['event_p2'].astype(float)
-    pbp_df['event_p3'] = pbp_df['event_p3'].astype(float)
-    pbp_df['away_goalie'] = pbp_df['away_goalie'].astype(float)
-    pbp_df['home_goalie'] = pbp_df['home_goalie'].astype(float)
+    pbp_df['event_p2'] = pd.to_numeric(pbp_df['event_p2'], errors='coerce')
+    pbp_df['event_p3'] = pd.to_numeric(pbp_df['event_p3'], errors='coerce')
+    pbp_df['away_goalie'] = pd.to_numeric(pbp_df['away_goalie'], errors='coerce')
+    pbp_df['home_goalie'] = pd.to_numeric(pbp_df['home_goalie'], errors='coerce')
 
     pbp_df = pbp_df.sort_values(by = ['period', 'seconds_elapsed'])
 
