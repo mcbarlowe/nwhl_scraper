@@ -1,10 +1,10 @@
 '''
-this is a script designed to scrape the NWHL play by play JSON when given a 
-game_id from the NWHL game database. I will reference play by play by the 
+this is a script designed to scrape the NWHL play by play JSON when given a
+game_id from the NWHL game database. I will reference play by play by the
 initials 'pbp' and dataframe as 'df' throughout the rest of these comments
 '''
 import requests
-import pandas as pd 
+import pandas as pd
 import bs4
 
 
@@ -32,7 +32,7 @@ def get_pbp_dict(game_id):
 
 def convert_pbp_dict(pbp_dict):
     '''
-    this function converts the pbp_dict into three dataframes one for the 
+    this function converts the pbp_dict into three dataframes one for the
     pbp, one for players, and one for the teams
 
     Inputs:
@@ -59,10 +59,15 @@ def convert_pbp_dict(pbp_dict):
     for play in pbp_list:
         event_row = []
         event_row.append(play['play_index'])
+
         #pulling in date and format to just YYYY-MM-DD
         date = play['created_at'][:10]
         event_row.append(date)
+
+        #get value of the clock when the play happened
         event_row.append(play['clock_time_string'])
+
+        #calculates seconds elapsed in each period
         if play['special_tags'] and play['special_tags'][0] == "ends_time_interval":
             event_row.append(1200)
         elif play['play_type'] == 'Shootout':
@@ -75,13 +80,29 @@ def convert_pbp_dict(pbp_dict):
                 event_row.append(minutes+seconds)
             except AttributeError:
                 event_row.append(0)
+
+        #pulls game_id
         event_row.append(play['game_id'])
+
+        #gets pbp event includes shot, penalty, block, turnover, goal, faceoff
         if play['special_tags'] and play['special_tags'][0] == "ends_time_interval":
             event_row.append('Period End')
         else:
             event_row.append(play['play_type'])
-        event_row.append(play['play_by_play_string'])
+
+        #gets pbp event description
+        if play['play_by_play_string'].strip().lower() == "penalty":
+            description = '{} {}'.format(play['play_by_play_string'].strip(),
+                                            play['play_summary']['details'])
+            event_row.append(description)
+        else:
+            event_row.append(play['play_by_play_string'].strip())
+
+        #period
         event_row.append(play['time_interval'])
+
+        #event players if goal will include scorerer and assisters,
+        #faceoffs have the winner as event_p1 and the loser event_p2
         if "Goal" in play['play_by_play_string']:
             event_row.append(play['play_summary'].get('scorer_id'))
             event_row.append(play['play_summary'].get('assist_1_id'))
@@ -100,18 +121,18 @@ def convert_pbp_dict(pbp_dict):
         parsed_plays_list.append(event_row)
 
     #create column names for my new pbp_df
-    cols = ['event_index', 'date', 'time', 'seconds_elapsed', 'game_id', 
+    cols = ['event_index', 'date', 'time', 'seconds_elapsed', 'game_id',
             'event', 'event_description', 'period',
-            'event_p1', 'event_p2', 'event_p3', 'event_team', 'x_coord', 'y_coord', 
+            'event_p1', 'event_p2', 'event_p3', 'event_team', 'x_coord', 'y_coord',
             'away_goalie', 'home_goalie', 'away_score', 'home_score']
 
     #create df from list of list of each pbp event
     pbp_df = pd.DataFrame(parsed_plays_list, columns=cols)
 
-    #fills na with zeros so I can cast player ids as 
+    #fills na with zeros so I can cast player ids as
     pbp_df = pbp_df.fillna(0)
 
-    #pull in home and away team and team id 
+    #pull in home and away team and team id
     pbp_df['home_team'] = team_df.loc[0, 'name']
     pbp_df['home_team_id'] = team_df.loc[0, 'team_id']
 
@@ -134,14 +155,14 @@ def convert_pbp_dict(pbp_dict):
 def pull_player_names(pbp_df, player_df, id_column):
     '''
     this function pulls the player name of the column passed to it
-    
+
     Inputs:
     pbp_df - play by play dataframe
     player_df - player dataframe with player ids
     id_column - pbp_df id column for which you want names matched to
 
     Outputs:
-    pbp_df - play by play dataframe but with names for the id_column 
+    pbp_df - play by play dataframe but with names for the id_column
              passed to it
     '''
 
@@ -149,7 +170,7 @@ def pull_player_names(pbp_df, player_df, id_column):
     #rewrite this as a function to join names together with a period
     #to help get rid of whitespace
     player_df['full_name'] = player_df['first_name'].str.strip() + ' ' + player_df['last_name'].str.strip()
-    
+
     #pull in the name of the players for the id_column passed to the function
     pbp_df = pbp_df.merge(player_df[['id', 'full_name']], how='left', left_on=id_column, right_on='id')
 
@@ -160,29 +181,29 @@ def pull_player_names(pbp_df, player_df, id_column):
 
 def main():
     '''
-    This will run and return text files of the team_df, player_df and pbp_df as 
+    This will run and return text files of the team_df, player_df and pbp_df as
     pipe delimited files
     '''
 
-    game_id = input("Please input game id you want scraped: ") 
+    game_id = input("Please input game id you want scraped: ")
     #game_id = 18507472
     pbp_dict = get_pbp_dict(game_id)
     pbp_df, player_df, team_df = convert_pbp_dict(pbp_dict)
 
     player_id_columns = ['event_p1', 'event_p2', 'event_p3', 'away_goalie', 'home_goalie']
-    
+
     for column in player_id_columns:
         pbp_df = pull_player_names(pbp_df, player_df, column)
-        
+
     #removing extraneous columns and reogranizing the columns to make a little more sense
     #to the user.
     pbp_df = pbp_df[['event_index', 'date', 'time', 'seconds_elapsed', 'game_id', 'event',
-                     'event_description', 'period', 'event_p1', 'event_p1_name', 
+                     'event_description', 'period', 'event_p1', 'event_p1_name',
                      'event_p2', 'event_p2_name', 'event_p3', 'event_p3_name', 'event_team',
                      'x_coord', 'y_coord', 'away_goalie', 'away_goalie_name', 'home_goalie',
                      'home_goalie_name', 'away_score', 'home_score', 'home_team_id', 'home_team',
                      'away_team_id', 'away_team']]
-    
+
     #writing all the dataframes to pipe delimited text files
     pd.DataFrame.to_csv(pbp_df, f'{game_id}_pbp_df.txt', sep='|', index=False)
     pd.DataFrame.to_csv(player_df, f'{game_id}_player_df.txt', sep='|', index=False)
