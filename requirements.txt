@@ -3,7 +3,7 @@ bs4==0.0.1
 certifi==2018.8.13
 chardet==3.0.4
 idna==2.7
-numpy==1.15.0
+numpy==1.22.0
 pandas==0.23.4
 python-dateutil==2.7.3
 pytz==2018.5
